@@ -12,7 +12,7 @@ begin
     select count(*)
     into v_count
     from lazorenko_al.work_time w
-    where w.end_time>(TO_CHAR(sysdate, 'hh24:mi'))
+    where w.end_time>(TO_CHAR(sysdate+1/12, 'hh24:mi'))
     and w.day in (to_char(sysdate, 'd')) and w.hospital_id=p_hospital_id;
 
 return v_count>0;
@@ -37,7 +37,7 @@ begin
     select count(*)
     into v_count
     from lazorenko_al.ticket t
-    where to_date(appointment_beg, 'yyyy-mm-dd hh24:mi:ss')>sysdate+1/12
+    where to_date(appointment_beg, 'yyyy-mm-dd hh24:mi:ss')>sysdate
           and t.ticket_id=p_ticket_id;
 
 return v_count>0;
