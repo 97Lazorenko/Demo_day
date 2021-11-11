@@ -2,7 +2,7 @@
 ------------------------------------------ЗАПРОСЫ----------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 
---ЗАПРОС 1 - ФУНКЦИЯ
+--1.ВЫДАЧА ВСЕХ ГОРОДОВ И РЕГИОНОВ - ФУНКЦИЯ
 create or replace function lazorenko_al.get_cities_regions(
 p_region_id in number default null)
 return sys_refcursor
@@ -31,7 +31,7 @@ begin
     close v_cursor_1;
 end;
 
---ЗАПРОС 1 - ПРОЦЕДУРА
+--1.ВЫДАЧА ВСЕХ ГОРОДОВ И РЕГИОНОВ - ПРОЦЕДУРА
 create or replace procedure lazorenko_al.get_get_cities_regions(
     p_region_id in number,
     out_cursor out sys_refcursor)
@@ -57,9 +57,11 @@ begin
     close v_cursor;
 end;
 
---ЗАПРОС 2 - ФУНКЦИЯ
+--2.ВЫДАЧА СПЕЦИАЛЬНОСТЕЙ ПО ДОКТОРАМ, ПО БОЛЬНИЦАМ - ФУНКЦИЯ
 
-create or replace function lazorenko_al.get_specs(p_hospital_id in number default null)
+create or replace function lazorenko_al.get_specs(
+p_doctor_id in number default null,
+p_hospital_id in number default null)
 return sys_refcursor as
     v_cursor_1 sys_refcursor;
 begin
@@ -71,7 +73,8 @@ open v_cursor_1 for
     inner join hospital h using(hospital_id)
 
     where s.delete_from_the_sys is null and d.dismiss_date is null and h.delete_from_the_sys is null
-          and (p_hospital_id=hospital_id or p_hospital_id is null);
+          and (p_hospital_id=hospital_id or p_hospital_id is null)
+          and (p_doctor_id=doctor_id or p_doctor_id is null);
 
 return v_cursor_1;
 end;
@@ -81,7 +84,7 @@ declare
     v_spec_name record2;
     v_cursor_1 sys_refcursor;
 begin
-    v_cursor_1 :=lazorenko_al.get_specs();
+    v_cursor_1 :=lazorenko_al.get_specs(3, null);
     loop
     FETCH v_cursor_1 INTO v_spec_name;
     exit when v_cursor_1%notfound;
@@ -90,9 +93,10 @@ begin
     close v_cursor_1;
 end;
 
---ЗАПРОС 2 - ПРОЦЕДУРА
+--2.ВЫДАЧА СПЕЦИАЛЬНОСТЕЙ ПО ДОКТОРАМ, ПО БОЛЬНИЦАМ - ПРОЦЕДУРА
 create or replace procedure lazorenko_al.get_get_specs(
     p_hospital_id in number,
+    p_doctor_id in number,
     out_cursor out sys_refcursor)
 as
 begin
@@ -104,7 +108,8 @@ open out_cursor for
     inner join hospital h using(hospital_id)
 
     where s.delete_from_the_sys is null and d.dismiss_date is null and h.delete_from_the_sys is null
-          and (p_hospital_id=hospital_id or p_hospital_id is null);
+          and (p_hospital_id=hospital_id or p_hospital_id is null)
+          and (p_doctor_id=doctor_id or p_doctor_id is null);
 end;
 
 declare
@@ -112,7 +117,7 @@ declare
     type record2 is record (spec_name varchar2(50));
     v_spec_name record2;
 begin
-    lazorenko_al.get_get_specs(7,v_cursor);
+    lazorenko_al.get_get_specs(4, null, v_cursor);
     loop
         fetch v_cursor into v_spec_name;
         exit when v_cursor%notfound;
@@ -121,7 +126,7 @@ begin
     close v_cursor;
 end;
 
---ЗАПРОС 3 - ПРОЦЕДУРА
+--3.ВЫДАЧА БОЛЬНИЦ ПО СПЕЦИАЛЬНОСТЯМ, СОРТИРОВКИ - ПРОЦЕДУРА
 create or replace procedure lazorenko_al.get_doctors_specs(
     p_spec_id in number,
     out_cursor out sys_refcursor)
@@ -173,7 +178,7 @@ begin
     close v_cursor;
 end;
 
---ЗАПРОС 4 - ФУНКЦИЯ
+--4.ВЫДАЧА ВРАЧЕЙ ПО БОЛЬНИЦЕ, СОРТИРОВКИ - ФУНКЦИЯ
 
 create or replace function lazorenko_al.get_doctor(
     p_hospital_id in number,
@@ -215,7 +220,7 @@ begin
     close v_cursor_1;
 end;
 
---ЗАПРОС 5 - ПРОЦЕДУРА
+--5.ТАЛОНЫ ПО ВРАЧУ, СОРТИРОВКИ - ПРОЦЕДУРА
 create or replace procedure lazorenko_al.get_ticket(
     v_doctor_id in number,
     out_cursor out sys_refcursor)
@@ -243,96 +248,9 @@ begin
     close v_cursor;
 end;
 
---ЗАПРОС 6 - ФУНКЦИЯ
 
-create or replace function lazorenko_al.get_documents(
-    p_document_id in number default null)
-return sys_refcursor
-as
-    v_cursor_1 sys_refcursor;
-begin
-open v_cursor_1 for
-    select p.last_name, p.first_name, p.petronymic, d.name,
-    case
-           when dn.value is null then 'не указано'
-           else dn.value
-           end as документ
 
-    from lazorenko_al.patient p inner join lazorenko_al.documents_numbers dn using(patient_id)
-    right join lazorenko_al.documents d using(document_id)
-
-    where document_id=p_document_id or p_document_id is null
-    order by p.last_name;
-
-return v_cursor_1;
-end;
-
-declare
-    type record6 is record (last_name varchar2(100), first_name varchar2(100),
-    petronymic varchar2(100), name varchar2(100), value varchar2(100));
-    v_patient record6;
-    v_cursor_1 sys_refcursor;
-begin
-    v_cursor_1 :=lazorenko_al.get_documents();
-    loop
-    FETCH v_cursor_1 INTO v_patient;
-    exit when v_cursor_1%notfound;
-    dbms_output.put_line( 'ФИ(О) пациента - ' ||v_patient.last_name ||' '|| v_patient.first_name
-                         || ' ' || v_patient.petronymic || '; документ - ' || v_patient.name || '; значение - ' || v_patient.value);
-    end loop;
-    close v_cursor_1;
-end;
-
---ЗАПРОС 7 - ПРОЦЕДУРА
-create or replace procedure lazorenko_al.get_worktime(
-    p_hospital_id in number,
-    out_cursor out sys_refcursor)
-as
-begin
-open out_cursor for
-    select h.name,
-    case w.day
-           when 1 then 'понедельник'
-           when 2 then 'вторник    '
-           when 3 then 'среда      '
-           when 4 then 'четверг    '
-           when 5 then 'пятница    '
-           when 6 then 'суббота    '
-           when 7 then 'воскресенье'
-           end as день_недели,
-    case
-           when w.begin_time is null then 'не указано'
-           else w.begin_time
-           end as время_открытия,
-    case
-           when w.end_time is null then 'не указано'
-           else w.end_time
-           end as время_закрытия
-
-    from hospital h left join work_time w using(hospital_id)
-    inner join available a using(availability_id)
-
-    where (hospital_id=p_hospital_id or p_hospital_id is null) and h.delete_from_the_sys is null
-    order by w.day, h.name;
-end;
-
-declare
-    v_cursor sys_refcursor;
-    type record7 is record (name varchar2(100), day varchar2(50), begin_time varchar2(100), end_time varchar2(100));
-    v_record_beg_end record7;
-begin
-    lazorenko_al.get_worktime(5,v_cursor);
-    loop
-        fetch v_cursor into v_record_beg_end;
-        exit when v_cursor%notfound;
-        dbms_output.put_line ('название мед.учреждения - '|| v_record_beg_end.name||' '||v_record_beg_end.day
-                                  || '  ' || 'время открытия - ' || v_record_beg_end.begin_time || '; время закрытия - '
-                                  || v_record_beg_end.end_time);
-    end loop;
-    close v_cursor;
-end;
-
---ЗАПРОС 8 - ФУНКЦИЯ
+--6.ВЫДАЧА ЖУРНАЛА ЗАПИСЕЙ - ФУНКЦИЯ
 create or replace function lazorenko_al.get_records(
     p_patient_id in number default null,
     p_record_stat_id in number default null)
